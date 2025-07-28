@@ -1,5 +1,7 @@
 #!/bin/fish
 
+cd (dirname (realpath (status -f)))
+
 set -g option ""
 source ~/.mangadex/.data/settings.fish
 
@@ -41,20 +43,6 @@ function selectTitle
 
 		mkdir  "$HOME/.mangadex/$title"
 		set -g option Chapter
-	end
-end
-
-function downloadChapter
-	set querry (curl -s "https://api.mangadex.org/at-home/server/$chapter_id")
-			
-	set baseURL (echo $querry | jq -r ".baseUrl")
-	set hash (echo $querry | jq -r ".chapter.hash")
-	set img (echo $querry | jq -r ".chapter.data[]")
-
-	mkdir "$HOME/.mangadex/$title/$chapter"
-	for i in $img
-		echo "downn"
-		wget -O "$HOME/.mangadex/$title/$chapter/$i" "$baseURL/$quality/$hash/$i"
 	end
 end
 
@@ -105,10 +93,15 @@ while true
 			set option "GET"
 		case "GET"			
 			if test (count (ls -A "$HOME/.mangadex/$title/$chapter")) -eq 0
-				downloadChapter
+				fish download.fish $chapter_id $title $chapter &
+				sleep 2
+			end
+
+			while test (count (ls -A "$HOME/.mangadex/$title/$chapter")) -eq 0
+    			sleep 0.5
 			end
 				
-			fish -c "$reader $HOME/.mangadex/\"$title\"/$chapter/1-*.jpg"
+			$reader "$HOME/.mangadex/$title/$chapter/1"
 			
 			set -g option (echo -e "Continue\nSearch\nQuit" | \
 				wofi --dmenu --style $config 2>/dev/null)
