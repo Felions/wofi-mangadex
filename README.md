@@ -1,7 +1,6 @@
 # Installation
 
-<code>
-$ curl -s "https://raw.githubusercontent.com/Felions/wofi-mangadex/refs/heads/master/install.fish" | fish
+<code>$ curl -s "https://raw.githubusercontent.com/Felions/wofi-mangadex/refs/heads/master/install.fish" | fish
 </code>
 
 # Requirements
