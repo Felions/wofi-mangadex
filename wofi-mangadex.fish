@@ -1,0 +1,144 @@
+#!/bin/fish
+
+set -g option ""
+source ~/.mangadex/.data/settings.fish
+
+
+function searchTitles
+	
+	set Url "https://api.mangadex.org/manga?title=$argv[1]"
+	
+	source ~/.mangadex/.data/settings.fish
+	set contentRating (echo $contentRating | sed 's/ /\n/g')
+
+	for i in $contentRating
+		set Url "$Url&contentRating[]=$i"
+	end
+
+	curl -s $Url > ~/.mangadex/.data/search.json
+end
+
+function selectTitle
+	if not test -z $titles[1]
+
+		# delete old search
+		echo "" > ~/.mangadex/.data/search.txt
+
+		# recreate title id file
+		for n in (seq (count $titles))
+			echo "$titles[$n]	$titles_id[$n]" >> ~/.mangadex/.data/search.txt
+		end
+
+		# select  title
+		set -g title (printf "%s\n" $titles | \
+			wofi \
+			--dmenu \
+			--style $config 2>/dev/null)
+	
+		# get id
+		set -g title_id (awk -v title="$title" '$0 ~ title { print $NF }' ~/.mangadex/.data/search.txt)
+		
+
+		mkdir  "$HOME/.mangadex/$title"
+		set -g option Chapter
+	end
+end
+
+function downloadChapter
+	set querry (curl -s "https://api.mangadex.org/at-home/server/$chapter_id")
+			
+	set baseURL (echo $querry | jq -r ".baseUrl")
+	set hash (echo $querry | jq -r ".chapter.hash")
+	set img (echo $querry | jq -r ".chapter.data[]")
+
+	mkdir "$HOME/.mangadex/$title/$chapter"
+	for i in $img
+		echo "downn"
+		wget -O "$HOME/.mangadex/$title/$chapter/$i" "$baseURL/$quality/$hash/$i"
+	end
+end
+
+while true
+	switch $option
+		case "Search"
+			# search for manga
+			set querry (wofi \
+				-p "Search" \
+				--dmenu \
+				--style $config 2>/dev/null)
+			
+			if not test -z $querry
+				# get data
+				searchTitles $querry
+
+				# parse data
+				set -g titles (cat ~/.mangadex/.data/search.json | jq -r ".data[].attributes.title.en")
+				set -g titles_id (cat ~/.mangadex/.data/search.json | jq -r ".data[].id")
+				
+				selectTitle
+			else
+				set option ""
+			end
+		case "Chapter"
+			# get chaptes data
+			set search (curl -s "https://api.mangadex.org/manga/$title_id/feed?translatedLanguage[]=$lang")
+			
+			# parse data	
+			set chapters (printf "%s\n" $search | jq -r ".data[].attributes.chapter")
+			set chapters_id (printf "%s\n" $search | jq -r ".data[].id")
+			
+			for n in (seq (count $chapters_id))
+				echo "$chapters[$n]	$chapters_id[$n]" >> ~/.mangadex/.data/chapters.txt
+			end
+
+			set -g chapters (printf "%s\n" $chapters | sort -n)
+
+			# select chapter
+			set -g chapter (printf "%s\n" $chapters | \
+				wofi \
+				--dmenu \
+				--style $config 2>/dev/null)
+			
+			# get id
+			set -g chapter_id (awk -v id=$chapter '$1 == id { print $2 }' ~/.mangadex/.data/chapters.txt | head -n 1)
+						
+			set option "GET"
+		case "GET"			
+			if test (count (ls -A "$HOME/.mangadex/$title/$chapter")) -eq 0
+				downloadChapter
+			end
+				
+			fish -c "$reader $HOME/.mangadex/\"$title\"/$chapter/1-*.jpg"
+			
+			set -g option (echo -e "Continue\nSearch\nQuit" | \
+				wofi --dmenu --style $config 2>/dev/null)
+		case "Continue"			
+			# select chapter
+			set chapter (printf "%s\n" $chapters | \
+				wofi \
+				-p "Last chapter: $chapter" \
+				--dmenu \
+				--style $config 2>/dev/null)
+			
+			# get id
+			set -g chapter_id (awk -v id=$chapter '$1 == id { print $2 }' ~/.mangadex/.data/chapters.txt | head -n 1)
+							
+			set option GET
+		case "Quit"
+			exit	
+		case ""		
+			for i in start.fish chapters.txt search.json search.txt
+				echo "" > ~/.mangadex/.data/$i
+			end
+			
+			set option (echo -e "Search\nQuit\nLocal" | \
+				wofi \
+				--dmenu \
+				--style $config 2>/dev/null)
+		case "Local"
+			echo "TODO"
+			exit
+	end
+end
+
+
