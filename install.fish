@@ -1,6 +1,6 @@
 #!/bin/fish
 
-git clone git@github.com:Felions/wofi-mangadex.git ~/
+git clone git@github.com:Felions/wofi-mangadex.git ~/wofi-mangadex
 
 chmod u+x ~/wofi-mangadex/wofi-mangadex
 ln ~/wofi-mangadex/wofi-mangadex ~/.local/bin/
