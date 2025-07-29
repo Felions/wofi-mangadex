@@ -24,6 +24,8 @@ end
 function selectTitle
 	if not test -z $titles[1]
 
+		set -g title ""
+
 		# delete old search
 		echo "" > ~/.mangadex/.data/search.txt
 
@@ -35,15 +37,19 @@ function selectTitle
 		# select  title
 		set -g title (printf "%s\n" $titles | \
 			wofi \
+			-p "Select Title" \
 			--dmenu \
 			--style $config 2>/dev/null)
-	
+		
 		# get id
 		set -g title_id (awk -v title="$title" '$0 ~ title { print $NF }' ~/.mangadex/.data/search.txt)
 		
-
-		mkdir  "$HOME/.mangadex/$title"
-		set -g option Chapter
+		if contains $title $titles
+			mkdir  "$HOME/.mangadex/$title"
+			set -g option "Chapter"
+		else
+			set -g option ""
+		end
 	end
 end
 
@@ -85,6 +91,7 @@ while true
 			# select chapter
 			set -g chapter (printf "%s\n" $chapters | \
 				wofi \
+				-p "Select chapter" \
 				--dmenu \
 				--style $config 2>/dev/null)
 			
@@ -110,19 +117,26 @@ while true
 			$reader "$HOME/.mangadex/$title/$chapter/1"
 			
 			set -g option (echo -e "Continue\nSearch\nQuit" | \
-				wofi --dmenu --style $config 2>/dev/null)
-		case "Continue"			
+				wofi -p "Select Option" --dmenu --style $config 2>/dev/null)
+		case "Continue"	
+			
+			set tmp $chapter
+			
 			# select chapter
 			set chapter (printf "%s\n" $chapters | \
 				wofi \
-				-p "Last chapter: $chapter" \
+				-p "Last Chapter: $chapter" \
 				--dmenu \
 				--style $config 2>/dev/null)
 			
-			# get id
-			set -g chapter_id (awk -v id=$chapter '$1 == id { print $2 }' ~/.mangadex/.data/chapters.txt | head -n 1)
-							
-			set option GET
+			if contains $chapter $chapters
+				# get id
+				set -g chapter_id (awk -v id=$chapter '$1 == id { print $2 }' ~/.mangadex/.data/chapters.txt | head -n 1)
+								
+				set option GET
+			else
+				set -g chapter $tmp
+			end
 		case "Quit"
 			exit	
 		case ""		
@@ -132,6 +146,7 @@ while true
 			
 			set option (echo -e "Search\nQuit\nLocal" | \
 				wofi \
+				-p "Select Option" \
 				--dmenu \
 				--style $config 2>/dev/null)
 		case "Local"
