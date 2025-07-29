@@ -76,7 +76,14 @@ while true
 			end
 		case "Chapter"
 			# get chaptes data
-			set search (curl -s "https://api.mangadex.org/manga/$title_id/feed?translatedLanguage[]=$lang")
+
+			set Url "https://api.mangadex.org/manga/$title_id/feed?translatedLanguage[]=$lang"
+
+			for i in $contentRating
+				set Url "$Url&contentRating[]=$i"
+			end
+
+			set search (curl -s $Url)
 			
 			# parse data	
 			set chapters (printf "%s\n" $search | jq -r ".data[].attributes.chapter")
@@ -107,19 +114,19 @@ while true
 		case "GET"			
 			if test (count (ls -A "$HOME/.mangadex/$title/$chapter")) -eq 0
 				fish download.fish $chapter_id $title $chapter &
-				sleep 2
+				sleep 4
 			end
 
 			while test (count (ls -A "$HOME/.mangadex/$title/$chapter")) -eq 0
+				echo "Waiting to download"
     			sleep 0.5
 			end
 				
-			$reader "$HOME/.mangadex/$title/$chapter/1"
+			$reader "$HOME/.mangadex/$title/$chapter/1" 2>/dev/null
 			
 			set -g option (echo -e "Continue\nSearch\nQuit" | \
 				wofi -p "Select Option" --dmenu --style $config 2>/dev/null)
 		case "Continue"	
-			
 			set tmp $chapter
 			
 			# select chapter
