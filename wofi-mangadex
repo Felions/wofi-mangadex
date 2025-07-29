@@ -1,5 +1,6 @@
 #!/bin/fish
 
+
 cd (dirname (realpath (status -f)))
 
 set -g option ""
@@ -87,10 +88,15 @@ while true
 				--dmenu \
 				--style $config 2>/dev/null)
 			
-			# get id
-			set -g chapter_id (awk -v id=$chapter '$1 == id { print $2 }' ~/.mangadex/.data/chapters.txt | head -n 1)
-						
-			set option "GET"
+			if contains $chapter $chapters 
+			
+				# get id
+				set -g chapter_id (awk -v id=$chapter '$1 == id { print $2 }' ~/.mangadex/.data/chapters.txt | head -n 1)
+							
+				set -g option "GET"
+			else 
+				set -g option ""
+			end
 		case "GET"			
 			if test (count (ls -A "$HOME/.mangadex/$title/$chapter")) -eq 0
 				fish download.fish $chapter_id $title $chapter &

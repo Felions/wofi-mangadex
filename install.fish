@@ -3,6 +3,8 @@
 git clone git@github.com:Felions/wofi-mangadex.git ~/wofi-mangadex
 
 chmod u+x ~/wofi-mangadex/wofi-mangadex
+
+rm -f ~/.local/bin/wofi-mangadex
 ln ~/wofi-mangadex/wofi-mangadex ~/.local/bin/
 
 mkdir -p ~/.mangadex/.data
