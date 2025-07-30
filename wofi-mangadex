@@ -83,6 +83,8 @@ while true
 				set Url "$Url&contentRating[]=$i"
 			end
 
+			echo $Urls
+
 			set search (curl -s $Url)
 			
 			# parse data	
@@ -151,15 +153,58 @@ while true
 				echo "" > ~/.mangadex/.data/$i
 			end
 			
-			set option (echo -e "Search\nQuit\nLocal" | \
+			set option (echo -e "Continue\nSearch\nLocal\nQuit" | \
 				wofi \
 				-p "Select Option" \
 				--dmenu \
 				--style $config 2>/dev/null)
 		case "Local"
-			echo "TODO"
-			exit
+			set local_titles (ls ~/.mangadex)
+			set local_title (printf "%s\n" $local_titles | \
+							wofi \
+							-p "Select Manga" \
+							--dmenu \
+							--style $config 2>/dev/null)
+			set -g option "LocalChaper"				
+		case "LocalChaper"
+			set local_chapters (ls ~/.mangadex/$local_title)
+			set local_chapter (printf "%s\n" $local_chapters | \
+							wofi \
+							-p "Select Chapter" \
+							--dmenu \
+							--style $config 2>/dev/null)
+			$reader "$HOME/.mangadex/$local_title/$local_chapter/1"
+			
+			set -g option (echo -e "Continue\nSearch\nLocal\nQuit" | \
+				wofi -p "Select Option" --dmenu --style $config 2>/dev/null)
+			
+			if string match "Continue" $option
+				set -g option "LocalContinue"
+			end
+
+		case "LocalContinue"
+			set tmp $local_chapter
+
+			# select chapter
+			set local_chapter (printf "%s\n" $local_chapters | \
+				wofi \
+				-p "Last Chapter: $local_chapter" \
+				--dmenu \
+				--style $config 2>/dev/null)
+			
+			if contains $local_chapter $local_chapters
+				$reader "$HOME/.mangadex/$local_title/$local_chapter/1"
+				set -g option (echo -e "Continue\nSearch\nLocal\nQuit" | \
+					wofi -p "Select Option" --dmenu --style $config 2>/dev/null)
+			
+				if string match "Continue" $option
+					set -g option "LocalContinue"
+				end
+			else
+				set local_chapter $tmp
+			end
 	end
 end
+
 
 
